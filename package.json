@@ -1,0 +1,11 @@
+{
+  "name": "library-system-root",
+  "private": true,
+  "scripts": {
+    "preinstall": "npm --prefix frontend install",
+    "install:frontend": "npm --prefix frontend install",
+    "start": "npm --prefix frontend run start",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run test -- --watch=false"
+  }
+}
