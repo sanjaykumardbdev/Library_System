@@ -1,26 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-type Member = {
-  memberId: number;
-  fullName: string;
-  memberType?: string;
-  email?: string;
-  phone?: string;
-  joinDate?: string;
-  status?: string;
-};
-
 export default function MembersList() {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [memberId, setMemberId] = useState<string>('1005');
-  const [name, setName] = useState<string>('');
-  const [memberType, setMemberType] = useState<string>('');
+  const [members, setMembers] = useState([]);
+  const [memberId, setMemberId] = useState('1005');
+  const [name, setName] = useState('');
+  const [memberType, setMemberType] = useState('');
   const [loading, setLoading] = useState(false);
 
   const load = () => {
     setLoading(true);
-    const params: any = {};
+    const params = {};
     if (memberId) params.memberId = Number(memberId);
     if (name) params.name = name;
     if (memberType) params.memberType = memberType;
@@ -32,7 +22,9 @@ export default function MembersList() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   return (
     <div style={{ marginTop: 24 }}>
@@ -43,7 +35,7 @@ export default function MembersList() {
         <input placeholder="Member ID" value={memberId} onChange={(e) => setMemberId(e.target.value)} style={{ marginRight: 8 }} />
         <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} style={{ marginRight: 8 }} />
         <input placeholder="Type (STUDENT/PROFESSIONAL)" value={memberType} onChange={(e) => setMemberType(e.target.value)} style={{ marginRight: 8 }} />
-        <button onClick={() => { load(); }}>Execute SP</button>
+        <button onClick={() => load()}>Execute SP</button>
         <button onClick={() => { setMemberId('1005'); setName(''); setMemberType(''); load(); }} style={{ marginLeft: 8 }}>Reset</button>
       </div>
 

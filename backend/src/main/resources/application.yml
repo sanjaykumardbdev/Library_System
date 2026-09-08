@@ -23,4 +23,4 @@ management:
 
 members:
   procedure:
-    schema: LIBRARY_ETL
+    schema: library_etl

@@ -1,11 +1,11 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import BooksList from './pages/BooksList';
 import MembersList from './pages/MembersList';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div style={{ padding: 20 }}>
         <h1>Library Management - Demo UI</h1>
 
@@ -21,6 +21,6 @@ export default function App() {
           <Route path="*" element={<MembersList />} />
         </Routes>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
