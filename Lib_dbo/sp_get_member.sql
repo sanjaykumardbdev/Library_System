@@ -27,3 +27,8 @@ END sp_get_member;
 /
 
 COMMENT ON PROCEDURE sp_get_member IS 'Returns member records as a SYS_REFCURSOR using optional member_id, name and member_type filters';
+
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello from Oracle PL/SQL');
+END;
+/
