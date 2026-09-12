@@ -7,11 +7,21 @@ export default function App() {
   return (
     <HashRouter>
       <div style={{ padding: 20 }}>
-        <h1>Library Management - Demo UI</h1>
+        <h1 style={{ marginBottom: 16 }}>Library Management - Demo UI</h1>
 
-        <div style={{ marginBottom: 16 }}>
-          <Link to="/books"><button style={{ marginRight: 8 }}>Books</button></Link>
-          <Link to="/members"><button>Members</button></Link>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 20,
+          justifyContent: 'flex-start'
+        }}>
+          <Link to="/books" style={{ textDecoration: 'none' }}>
+            <button style={{ cursor: 'pointer' }}>Books</button>
+          </Link>
+          <Link to="/members" style={{ textDecoration: 'none' }}>
+            <button style={{ cursor: 'pointer' }}>Members</button>
+          </Link>
         </div>
 
         <Routes>
