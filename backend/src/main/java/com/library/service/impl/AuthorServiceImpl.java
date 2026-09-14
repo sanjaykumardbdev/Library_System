@@ -8,51 +8,106 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+/*
+* Step 6 — Service implementation
+This contains the actual business logic.
+This is extremely important.
 
+The service converts:
+
+DTO → Entity
+
+before saving.
+
+And after retrieving:
+
+Entity → DTO
+
+before returning the result.
+
+That's the core of your DTO architecture.
+
+ */
 @Service
 public class AuthorServiceImpl implements AuthorService {
 
     private final AuthorRepository repo;
 
-    public AuthorServiceImpl(AuthorRepository repo) { this.repo = repo; }
+    public AuthorServiceImpl(AuthorRepository repo) {
+        this.repo = repo;
+    }
 
     @Override
-    public List<AuthorDTO> findAll() {
-        return repo.findAll().stream().map(this::toDto).collect(Collectors.toList());
+    public List<AuthorDTO> findAll(int page, int size, String search) {
+
+        // Simple implementation for now:
+        // pagination and search can be added later.
+
+        return repo.findAll()
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public AuthorDTO findById(Long id) {
-        return repo.findById(id).map(this::toDto).orElse(null);
+
+        return repo.findById(id)
+                .map(this::toDto)
+                .orElse(null);
     }
 
     @Override
     public AuthorDTO create(AuthorDTO dto) {
-        Author a = new Author();
-        a.setAuthorId(dto.getAuthorId());
-        a.setAuthorName(dto.getAuthorName());
-        a.setCountry(dto.getCountry());
-        Author saved = repo.save(a);
+
+        Author author = toEntity(dto);
+
+        Author saved = repo.save(author);
+
         return toDto(saved);
     }
 
     @Override
     public AuthorDTO update(Long id, AuthorDTO dto) {
-        return repo.findById(id).map(e -> {
-            e.setAuthorName(dto.getAuthorName());
-            e.setCountry(dto.getCountry());
-            return toDto(repo.save(e));
-        }).orElse(null);
+
+        return repo.findById(id)
+                .map(author -> {
+
+                    author.setAuthorName(dto.getAuthorName());
+                    author.setCountry(dto.getCountry());
+
+                    return toDto(repo.save(author));
+                })
+                .orElse(null);
     }
 
     @Override
-    public void delete(Long id) { repo.deleteById(id); }
+    public void delete(Long id) {
 
-    private AuthorDTO toDto(Author a) {
-        AuthorDTO d = new AuthorDTO();
-        d.setAuthorId(a.getAuthorId());
-        d.setAuthorName(a.getAuthorName());
-        d.setCountry(a.getCountry());
-        return d;
+        repo.deleteById(id);
+    }
+
+    private AuthorDTO toDto(Author author) {
+
+        AuthorDTO dto = new AuthorDTO();
+
+        dto.setAuthorId(author.getAuthorId());
+        dto.setAuthorName(author.getAuthorName());
+        dto.setCountry(author.getCountry());
+
+        return dto;
+    }
+
+    private Author toEntity(AuthorDTO dto) {
+
+        Author author = new Author();
+
+        // Do not need to set authorId for a new record.
+        // Oracle SEQ_AUTHORS will generate it.
+
+        author.setAuthorName(dto.getAuthorName());
+        author.setCountry(dto.getCountry());
+
+        return author;
     }
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import BooksList from './pages/BooksList';
 import MembersList from './pages/MembersList';
+import AuthorLists from './pages/AuthorLists';
 
 export default function App() {
   return (
@@ -22,12 +23,16 @@ export default function App() {
           <Link to="/members" style={{ textDecoration: 'none' }}>
             <button style={{ cursor: 'pointer' }}>Members</button>
           </Link>
+          <Link to="/authors" style={{ textDecoration: 'none' }}>
+            <button style={{ cursor: 'pointer' }}>Authors</button>
+          </Link>
         </div>
 
         <Routes>
           <Route path="/" element={<Navigate to="/members" replace />} />
           <Route path="/books" element={<BooksList />} />
           <Route path="/members" element={<MembersList />} />
+          <Route path="/authors" element={<AuthorLists />} />
           <Route path="*" element={<MembersList />} />
         </Routes>
       </div>
