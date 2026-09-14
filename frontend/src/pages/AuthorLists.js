@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import AuthorForm from '../components/AuthorForm';
 
 export default function AuthorLists() {
 
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     loadAuthors();
@@ -27,6 +29,15 @@ export default function AuthorLists() {
     }
   };
 
+  const handleAuthorSaved = (newAuthor) => {
+    setAuthors((previousAuthors) => [
+      ...previousAuthors,
+      newAuthor
+    ]);
+
+    setShowForm(false);
+  };
+
   if (loading) {
     return <h2>Loading authors...</h2>;
   }
@@ -38,8 +49,29 @@ export default function AuthorLists() {
   return (
     <div>
 
-      <h2>Authors</h2>
+      {/* Page heading and Add Author button */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px',
+          marginBottom: '15px'
+        }}
+      >
+        <h2>Authors</h2>
 
+        <button
+          onClick={() => setShowForm(true)}
+          style={{
+            padding: '8px 14px',
+            cursor: 'pointer'
+          }}
+        >
+          Add Author
+        </button>
+      </div>
+
+      {/* Authors table */}
       <table
         border="1"
         cellPadding="8"
@@ -48,7 +80,6 @@ export default function AuthorLists() {
           width: '600px'
         }}
       >
-
         <thead>
           <tr>
             <th>Author ID</th>
@@ -58,22 +89,23 @@ export default function AuthorLists() {
         </thead>
 
         <tbody>
-
           {authors.map((author) => (
             <tr key={author.authorId}>
-
               <td>{author.authorId}</td>
-
               <td>{author.authorName}</td>
-
               <td>{author.country}</td>
-
             </tr>
           ))}
-
         </tbody>
-
       </table>
+
+      {/* Display the form when Add Author is clicked */}
+      {showForm && (
+        <AuthorForm
+          onSaved={handleAuthorSaved}
+          onClose={() => setShowForm(false)}
+        />
+      )}
 
     </div>
   );
