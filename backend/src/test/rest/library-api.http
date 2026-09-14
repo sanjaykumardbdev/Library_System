@@ -1,0 +1,16 @@
+@baseUrl = http://localhost:8082
+
+### Get member
+GET {{baseUrl}}/api/members?memberId=10073333
+Accept: application/json
+
+
+
+### Get authors
+GET {{baseUrl}}/api/authors
+Accept: application/json
+
+
+### Get books
+GET {{baseUrl}}/api/books
+Accept: application/json
