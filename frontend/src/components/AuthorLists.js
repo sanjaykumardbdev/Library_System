@@ -8,6 +8,7 @@ export default function AuthorLists() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [selectedAuthor, setSelectedAuthor] = useState(null);
 
   useEffect(() => {
     loadAuthors();
@@ -22,26 +23,88 @@ export default function AuthorLists() {
         'http://localhost:8082/api/authors'
       );
 
-      setAuthors(response.data);
-      setLoading(false);
+      const sortedAuthors = response.data.sort(
+        (a, b) => a.authorId - b.authorId
+      );
+
+      setAuthors(sortedAuthors);
 
     } catch (error) {
       console.error('Error loading authors:', error);
-
       setError('Unable to load authors');
+
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleAuthorSaved = (newAuthor) => {
-    // Add the newly created author to the existing list
-    setAuthors((previousAuthors) => [
-      ...previousAuthors,
-      newAuthor
-    ]);
+  const handleAddAuthor = () => {
+    setSelectedAuthor(null);
+    setShowForm(true);
+  };
 
-    // Close the form
+  const handleEditAuthor = (author) => {
+    setSelectedAuthor(author);
+    setShowForm(true);
+  };
+
+  const handleAuthorSaved = (savedAuthor) => {
+    setAuthors((previousAuthors) => {
+
+      const exists = previousAuthors.some(
+        (author) => author.authorId === savedAuthor.authorId
+      );
+
+      let updatedAuthors;
+
+      if (exists) {
+        updatedAuthors = previousAuthors.map((author) =>
+          author.authorId === savedAuthor.authorId
+            ? savedAuthor
+            : author
+        );
+      } else {
+        updatedAuthors = [
+          ...previousAuthors,
+          savedAuthor
+        ];
+      }
+
+      return updatedAuthors.sort(
+        (a, b) => a.authorId - b.authorId
+      );
+    });
+
     setShowForm(false);
+    setSelectedAuthor(null);
+  };
+
+  const handleDeleteAuthor = async (authorId) => {
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete author ${authorId}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `http://localhost:8082/api/authors/${authorId}`
+      );
+
+      setAuthors((previousAuthors) =>
+        previousAuthors.filter(
+          (author) => author.authorId !== authorId
+        )
+      );
+
+    } catch (error) {
+      console.error('Error deleting author:', error);
+
+      alert('Unable to delete author. Please check the backend.');
+    }
   };
 
   if (loading) {
@@ -58,20 +121,16 @@ export default function AuthorLists() {
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          width: '600px',
-          marginBottom: 15
+          gap: '20px',
+          marginBottom: '15px'
         }}
       >
         <h2>Authors</h2>
 
         <button
-          onClick={() => setShowForm(true)}
-          style={{
-            padding: '8px 14px',
-            cursor: 'pointer'
-          }}
+          onClick={handleAddAuthor}
+          style={styles.button}
         >
           Add Author
         </button>
@@ -82,7 +141,7 @@ export default function AuthorLists() {
         cellPadding="8"
         style={{
           borderCollapse: 'collapse',
-          width: '600px'
+          width: '800px'
         }}
       >
         <thead>
@@ -90,15 +149,34 @@ export default function AuthorLists() {
             <th>Author ID</th>
             <th>Author Name</th>
             <th>Country</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
           {authors.map((author) => (
             <tr key={author.authorId}>
+
               <td>{author.authorId}</td>
               <td>{author.authorName}</td>
               <td>{author.country}</td>
+
+              <td>
+                <button
+                  onClick={() => handleEditAuthor(author)}
+                  style={styles.actionButton}
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => handleDeleteAuthor(author.authorId)}
+                  style={styles.deleteButton}
+                >
+                  Delete
+                </button>
+              </td>
+
             </tr>
           ))}
         </tbody>
@@ -106,11 +184,33 @@ export default function AuthorLists() {
 
       {showForm && (
         <AuthorForm
+          initial={selectedAuthor}
           onSaved={handleAuthorSaved}
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            setShowForm(false);
+            setSelectedAuthor(null);
+          }}
         />
       )}
 
     </div>
   );
 }
+
+const styles = {
+  button: {
+    padding: '8px 14px',
+    cursor: 'pointer'
+  },
+
+  actionButton: {
+    padding: '5px 10px',
+    marginRight: '8px',
+    cursor: 'pointer'
+  },
+
+  deleteButton: {
+    padding: '5px 10px',
+    cursor: 'pointer'
+  }
+};

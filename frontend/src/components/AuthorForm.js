@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-export default function AuthorForm({ onSaved, onClose }) {
+export default function AuthorForm({ initial, onSaved, onClose }) {
+
   const [authorName, setAuthorName] = useState('');
   const [country, setCountry] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const isEditMode = Boolean(initial);
+
+  useEffect(() => {
+    setAuthorName(initial?.authorName || '');
+    setCountry(initial?.country || '');
+    setError('');
+  }, [initial]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -19,25 +28,45 @@ export default function AuthorForm({ onSaved, onClose }) {
       setSaving(true);
       setError('');
 
-      const response = await axios.post(
-        'http://localhost:8082/api/authors',
-        {
-          authorName: authorName.trim(),
-          country: country.trim()
-        }
-      );
+      const payload = {
+        authorName: authorName.trim(),
+        country: country.trim()
+      };
 
-      console.log('Created author:', response.data);
+      let response;
 
-      setSaving(false);
+      if (isEditMode) {
+        response = await axios.put(
+          `http://localhost:8082/api/authors/${initial.authorId}`,
+          payload
+        );
+      } else {
+        response = await axios.post(
+          'http://localhost:8082/api/authors',
+          payload
+        );
+      }
 
-      // Tell AuthorLists.js that the author was saved
       onSaved(response.data);
 
     } catch (error) {
-      console.error('Error creating author:', error);
+      console.error('Error saving author:', error);
 
-      setError('Unable to save author. Please check the backend.');
+      if (error.response) {
+        setError(
+          `Save failed: ${error.response.status} - ${
+            typeof error.response.data === 'string'
+              ? error.response.data
+              : JSON.stringify(error.response.data)
+          }`
+        );
+      } else if (error.request) {
+        setError('No response received from Spring Boot on port 8082.');
+      } else {
+        setError(`Request error: ${error.message}`);
+      }
+
+    } finally {
       setSaving(false);
     }
   };
@@ -46,7 +75,7 @@ export default function AuthorForm({ onSaved, onClose }) {
     <div style={styles.overlay}>
       <div style={styles.formContainer}>
 
-        <h2>Add Author</h2>
+        <h2>{isEditMode ? 'Edit Author' : 'Add Author'}</h2>
 
         <form onSubmit={handleSubmit}>
 
@@ -57,7 +86,6 @@ export default function AuthorForm({ onSaved, onClose }) {
               type="text"
               value={authorName}
               onChange={(event) => setAuthorName(event.target.value)}
-              placeholder="Enter author name"
               disabled={saving}
               style={styles.input}
             />
@@ -70,16 +98,13 @@ export default function AuthorForm({ onSaved, onClose }) {
               type="text"
               value={country}
               onChange={(event) => setCountry(event.target.value)}
-              placeholder="Enter country"
               disabled={saving}
               style={styles.input}
             />
           </div>
 
           {error && (
-            <p style={styles.error}>
-              {error}
-            </p>
+            <p style={styles.error}>{error}</p>
           )}
 
           <div style={styles.buttonContainer}>
@@ -87,7 +112,7 @@ export default function AuthorForm({ onSaved, onClose }) {
             <button
               type="submit"
               disabled={saving}
-              style={styles.saveButton}
+              style={styles.button}
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -96,7 +121,7 @@ export default function AuthorForm({ onSaved, onClose }) {
               type="button"
               onClick={onClose}
               disabled={saving}
-              style={styles.cancelButton}
+              style={styles.button}
             >
               Cancel
             </button>
@@ -125,20 +150,20 @@ const styles = {
 
   formContainer: {
     backgroundColor: 'white',
-    padding: 25,
-    borderRadius: 8,
-    width: 400,
+    padding: '25px',
+    borderRadius: '8px',
+    width: '400px',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
   },
 
   field: {
-    marginBottom: 15
+    marginBottom: '15px'
   },
 
   input: {
     width: '100%',
-    padding: 8,
-    marginTop: 5,
+    padding: '8px',
+    marginTop: '5px',
     boxSizing: 'border-box'
   },
 
@@ -147,17 +172,12 @@ const styles = {
   },
 
   buttonContainer: {
-    marginTop: 20,
     display: 'flex',
-    gap: 10
+    gap: '10px',
+    marginTop: '20px'
   },
 
-  saveButton: {
-    padding: '8px 16px',
-    cursor: 'pointer'
-  },
-
-  cancelButton: {
+  button: {
     padding: '8px 16px',
     cursor: 'pointer'
   }

@@ -1,16 +1,28 @@
 @baseUrl = http://localhost:8082
 
 ### Get member
-GET {{baseUrl}}/api/members?memberId=10073333
+GET {{baseUrl}}/api/members?memberId=112
 Accept: application/json
 
+# ==============================================================
+### Get books
+GET {{baseUrl}}/api/books
+Accept: application/json
 
-
+# ==============================================================
 ### Get authors
 GET {{baseUrl}}/api/authors
 Accept: application/json
 
+### Delete authors
+DELETE http://localhost:8082/api/authors/112
 
-### Get books
-GET {{baseUrl}}/api/books
-Accept: application/json
+### Update authors
+# PUT http://localhost:8082/api/authors/100
+
+# test update in power shell
+Invoke-RestMethod `
+  -Uri "http://localhost:8082/api/authors/100" `
+  -Method Put `
+  -ContentType "application/json" `
+  -Body '{"authorName":"Sanjay Kumar","country":"India"}'
