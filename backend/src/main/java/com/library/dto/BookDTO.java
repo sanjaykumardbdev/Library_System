@@ -9,6 +9,7 @@ public class BookDTO {
     private String isbn;
     private Integer publishYear;
     private Integer totalCopies;
+    private Integer availableCopies;
 
     public Long getBookId() { return bookId; }
     public void setBookId(Long bookId) { this.bookId = bookId; }
@@ -26,4 +27,6 @@ public class BookDTO {
     public void setPublishYear(Integer publishYear) { this.publishYear = publishYear; }
     public Integer getTotalCopies() { return totalCopies; }
     public void setTotalCopies(Integer totalCopies) { this.totalCopies = totalCopies; }
+    public Integer getAvailableCopies() { return availableCopies; }
+    public void setAvailableCopies(Integer availableCopies) { this.availableCopies = availableCopies; }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api/client';
 
 export default function BookForm({ initial, onSaved, onClose }) {
   const [title, setTitle] = useState(initial?.title || '');
@@ -21,8 +21,8 @@ export default function BookForm({ initial, onSaved, onClose }) {
     };
 
     const req = initial?.bookId
-      ? axios.put(`/api/books/${initial.bookId}`, payload)
-      : axios.post('/api/books', payload);
+      ? api.put(`/api/books/${initial.bookId}`, payload)
+      : api.post('/api/books', payload);
 
     req.then(() => onSaved()).catch(() => alert('Save failed'));
   }

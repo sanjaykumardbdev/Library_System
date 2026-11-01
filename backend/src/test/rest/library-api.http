@@ -1,5 +1,62 @@
 @baseUrl = http://localhost:8082
+@csrfToken = PASTE_TOKEN_FROM_GET_RESPONSE
 
+### Get a CSRF token before POST requests
+GET {{baseUrl}}/api/auth/csrf
+Accept: application/json
+
+# Use the returned token as X-XSRF-TOKEN. Keep the cookie jar for the HttpOnly access token.
+
+### Register a member account
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "username": "Library Member",
+  "email": "member@example.org",
+  "password": "ReplaceWithAUniqueLongPassword",
+  "memberType": "STUDENT",
+  "phone": "555-0100"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "member@example.org",
+  "password": "ReplaceWithAUniqueLongPassword"
+}
+
+### Current account
+GET {{baseUrl}}/api/auth/me
+Accept: application/json
+
+### My loan history
+GET {{baseUrl}}/api/me/loans
+Accept: application/json
+
+### Admin: list active loans
+GET {{baseUrl}}/api/admin/loans
+Accept: application/json
+
+### Admin: issue a book
+POST {{baseUrl}}/api/admin/loans
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "memberId": 1005,
+  "bookId": 10000
+}
+
+### Admin: return a loan
+POST {{baseUrl}}/api/admin/loans/100000/return
+X-XSRF-TOKEN: {{csrfToken}}
+
+# ==============================================================
 ### Get member
 GET {{baseUrl}}/api/members?memberId=112
 Accept: application/json

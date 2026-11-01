@@ -3,11 +3,11 @@ spring:
     url: ${DB_URL:jdbc:oracle:thin:@//localhost:1521/ORCLPDB}
     username: ${DB_USERNAME:library_etl}
     password: ${DB_PASSWORD:library_etl}
-    driver-class-name: oracle.jdbc.OracleDriver
+    driver-class-name: ${DB_DRIVER_CLASS_NAME:oracle.jdbc.OracleDriver}
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: true
+      ddl-auto: ${DDL_AUTO:validate}
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -20,6 +20,12 @@ management:
     web:
       exposure:
         include: health,info
+
+app:
+  jwt:
+    secret-base64: ${JWT_SECRET_BASE64}
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}
+    cookie-secure: ${JWT_COOKIE_SECURE:true}
 
 members:
   procedure:

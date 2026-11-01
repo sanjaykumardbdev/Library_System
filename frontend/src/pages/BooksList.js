@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import BookForm from '../components/BookForm';
 
 export default function BooksList() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes('ADMIN');
   const [books, setBooks] = useState([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -10,13 +13,18 @@ export default function BooksList() {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const load = () => {
     setLoading(true);
-    axios
+    api
       .get('/api/books', { params: { page, size, search } })
-      .then((r) => setBooks(r.data))
-      .catch(() => setBooks([]))
+      .then((r) => {
+        setBooks(r.data);
+        setError('');
+      })
+      .catch(() => setError('Could not load the book catalog.'))
       .finally(() => setLoading(false));
   };
 
@@ -39,9 +47,28 @@ export default function BooksList() {
     load();
   }
 
+  async function borrowBook(book) {
+    setError('');
+    setMessage('');
+    try {
+      await api.post('/api/me/loans', { bookId: book.bookId });
+      setMessage(`Borrowed "${book.title}". You can review its due date under My loans.`);
+      await load();
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || 'Could not borrow this book.');
+    }
+  }
+
+  function removeBook(bookId) {
+    if (!window.confirm('Delete this book from the catalog?')) return;
+    api.delete(`/api/books/${bookId}`).then(load).catch(() => window.alert('Delete failed'));
+  }
+
   return (
     <div>
       <h2>Books</h2>
+      {error && <p role="alert" style={{ color: '#a32222' }}>{error}</p>}
+      {message && <p role="status">{message}</p>}
 
       <div style={{ marginBottom: 12 }}>
         <input
@@ -66,9 +93,7 @@ export default function BooksList() {
         >
           Reset
         </button>
-        <button onClick={openCreate} style={{ marginLeft: 12 }}>
-          + Add Book
-        </button>
+        {isAdmin && <button onClick={openCreate} style={{ marginLeft: 12 }}>+ Add Book</button>}
       </div>
 
       {loading ? (
@@ -81,6 +106,7 @@ export default function BooksList() {
               <th>Title</th>
               <th>ISBN</th>
               <th>Copies</th>
+              <th>Available</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -91,8 +117,13 @@ export default function BooksList() {
                 <td>{b.title}</td>
                 <td>{b.isbn}</td>
                 <td>{b.totalCopies}</td>
+                <td>{b.availableCopies ?? 0}</td>
                 <td>
-                  <button onClick={() => openEdit(b)}>Edit</button>
+                  {isAdmin ? (
+                    <><button onClick={() => openEdit(b)}>Edit</button>{' '}<button onClick={() => removeBook(b.bookId)}>Delete</button></>
+                  ) : (
+                    <button disabled={!b.availableCopies} onClick={() => borrowBook(b)}>Borrow</button>
+                  )}
                 </td>
               </tr>
             ))}

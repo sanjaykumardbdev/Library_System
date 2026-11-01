@@ -8,6 +8,7 @@
 		"java.compile.nullAnalysis.mode": "automatic",
 		"chat.tools.terminal.autoApprove": {
 			"mvn spring-boot:run": true
-		}
+		},
+		"java.configuration.updateBuildConfiguration": "interactive"
 	}
 }
