@@ -1,7 +1,10 @@
 package com.library.controller;
 
 import com.library.dto.BookDTO;
+import com.library.dto.TopBorrowedBookResponse;
 import com.library.service.BookService;
+import com.library.service.LoanService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,12 +15,21 @@ import java.util.List;
 public class BookController {
 
     private final BookService service;
+    private final LoanService loanService;
 
-    public BookController(BookService service) { this.service = service; }
+    public BookController(BookService service, LoanService loanService) {
+        this.service = service;
+        this.loanService = loanService;
+    }
+
+    @GetMapping("/top-borrowed")
+    public List<TopBorrowedBookResponse> topBorrowed(@RequestParam(defaultValue = "5") int limit) {
+        return loanService.findTopBorrowedBooks(limit);
+    }
 
     @GetMapping
-    public ResponseEntity<List<BookDTO>> list(@RequestParam(defaultValue = "0") int page,
-                                              @RequestParam(defaultValue = "25") int size,
+    public ResponseEntity<Page<BookDTO>> list(@RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "5") int size,
                                               @RequestParam(required = false) String search) {
         return ResponseEntity.ok(service.findAll(page, size, search));
     }

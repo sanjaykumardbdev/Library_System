@@ -26,6 +26,17 @@ class JwtTokenServiceTest {
         assertFalse(tokenService.isValidFor(token + "tampered", user));
     }
 
+    @Test
+    void passwordResetVersionInvalidatesPreviouslyIssuedTokens() {
+        JwtTokenService tokenService = new JwtTokenService(SECRET, 60_000);
+        AppUser user = user(41L, "member@example.test");
+        String token = tokenService.issueToken(user);
+
+        user.setPasswordVersion(user.getPasswordVersion() + 1);
+
+        assertFalse(tokenService.isValidFor(token, user));
+    }
+
     private AppUser user(Long id, String email) {
         AppUser user = new AppUser();
         user.setId(id);

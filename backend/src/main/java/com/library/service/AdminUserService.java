@@ -12,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,8 +38,10 @@ public class AdminUserService {
         Map<Long, Set<String>> rolesByUser = new HashMap<>();
         jdbcTemplate.query(
                 "SELECT user_id, role FROM app_user_roles ORDER BY role",
-                rs -> rolesByUser.computeIfAbsent(rs.getLong("user_id"), ignored -> new HashSet<>())
-                        .add(rs.getString("role")));
+                rs -> {
+                    rolesByUser.computeIfAbsent(rs.getLong("user_id"), ignored -> new HashSet<>())
+                            .add(rs.getString("role"));
+                });
         users.forEach(user -> user.setRoles(rolesByUser.getOrDefault(user.getUserId(), Set.of())));
         return users;
     }
@@ -66,6 +67,9 @@ public class AdminUserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one account role is required");
         }
 
+        jdbcTemplate.query(
+                "SELECT user_id FROM app_users WHERE account_status = 'ACTIVE' ORDER BY user_id FOR UPDATE",
+                (rs, rowNum) -> rs.getLong("user_id"));
         String existingStatus = jdbcTemplate.query(
                 "SELECT account_status FROM app_users WHERE user_id = ? FOR UPDATE",
                 rs -> rs.next() ? rs.getString(1) : null,
@@ -119,7 +123,8 @@ public class AdminUserService {
     private AdminUserResponse mapUser(ResultSet rs) throws SQLException {
         AdminUserResponse response = new AdminUserResponse();
         response.setUserId(rs.getLong("user_id"));
-        response.setMemberId((Long) rs.getObject("member_id"));
+        long memberId = rs.getLong("member_id");
+        response.setMemberId(rs.wasNull() ? null : memberId);
         response.setUsername(rs.getString("username"));
         response.setEmail(rs.getString("email"));
         response.setMemberName(rs.getString("member_name"));

@@ -10,6 +10,7 @@ public class BookDTO {
     private Integer publishYear;
     private Integer totalCopies;
     private Integer availableCopies;
+    private boolean availabilityKnown;
 
     public Long getBookId() { return bookId; }
     public void setBookId(Long bookId) { this.bookId = bookId; }
@@ -29,4 +30,6 @@ public class BookDTO {
     public void setTotalCopies(Integer totalCopies) { this.totalCopies = totalCopies; }
     public Integer getAvailableCopies() { return availableCopies; }
     public void setAvailableCopies(Integer availableCopies) { this.availableCopies = availableCopies; }
+    public boolean isAvailabilityKnown() { return availabilityKnown; }
+    public void setAvailabilityKnown(boolean availabilityKnown) { this.availabilityKnown = availabilityKnown; }
 }

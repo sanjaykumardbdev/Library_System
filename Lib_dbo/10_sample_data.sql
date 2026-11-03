@@ -124,33 +124,28 @@ END;
 /
 
 --------------------------------------------------------------------------------
--- 6. BOOK COPIES (INVENTORY GENERATION USING COLLECTION LOGIC)
+-- 6. BOOK COPIES (KEEP INVENTORY CONSISTENT WITH THE CATALOG)
 --------------------------------------------------------------------------------
 DECLARE
-    TYPE t_num_tab IS TABLE OF NUMBER;
-    v_books t_num_tab := t_num_tab();
 BEGIN
-    SELECT book_id BULK COLLECT INTO v_books FROM books;
-
-    FOR i IN 1..v_books.COUNT LOOP
-        FOR j IN 1..3 LOOP
-            BEGIN
-                INSERT INTO book_copies VALUES (
-                    seq_book_copies.NEXTVAL,
-                    (SELECT book_id FROM (SELECT book_id,ROW_NUMBER() OVER (ORDER BY DBMS_RANDOM.VALUE) rn FROM books ) WHERE rn = 1),
-                    (SELECT BRANCH_ID FROM (SELECT BRANCH_ID,ROW_NUMBER() OVER (ORDER BY DBMS_RANDOM.VALUE) rn FROM LIBRARY_BRANCHES ) WHERE rn = 1),                    
-                    'AVAILABLE'
-                );
-            EXCEPTION
-                WHEN DUP_VAL_ON_INDEX THEN NULL;
-            END;
+    FOR book_record IN (
+        SELECT b.book_id, GREATEST(NVL(b.total_copies, 0) - COUNT(bc.copy_id), 0) AS missing_copies
+        FROM books b
+        LEFT JOIN book_copies bc ON bc.book_id = b.book_id
+        GROUP BY b.book_id, b.total_copies
+    ) LOOP
+        FOR copy_index IN 1 .. book_record.missing_copies LOOP
+            INSERT INTO book_copies (copy_id, book_id, branch_id, status)
+            VALUES (
+                seq_book_copies.NEXTVAL,
+                book_record.book_id,
+                (SELECT MIN(branch_id) FROM library_branches),
+                'AVAILABLE'
+            );
         END LOOP;
     END LOOP;
 END;
 /
-
--- Based on number of copies available in book table, same number of copies should be availle in book_copies;
--- Check file : daa reconciliation.sql
 
 --------------------------------------------------------------------------------
 -- 7. SEATING DATA (SEATS PER BRANCH)

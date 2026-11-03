@@ -4,6 +4,9 @@ import com.library.dto.BookDTO;
 import com.library.entity.Book;
 import com.library.repository.BookRepository;
 import com.library.service.BookService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -13,7 +16,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class BookServiceImpl implements BookService {
@@ -27,16 +29,24 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public List<BookDTO> findAll(int page, int size, String search) {
-        // Simple implementation: ignore pagination/search for now
+    public Page<BookDTO> findAll(int page, int size, String search) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Page must be non-negative and page size must be between 1 and 100");
+        }
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("bookId").ascending());
+        String query = search == null ? "" : search.trim();
+        Page<Book> books = query.isEmpty()
+                ? repo.findAll(pageable)
+                : repo.findByTitleContainingIgnoreCaseOrIsbnContainingIgnoreCase(query, query, pageable);
         Map<Long, Integer> availableCounts = new HashMap<>();
         jdbcTemplate.query(
                 "SELECT book_id, COUNT(*) AS available_copies FROM book_copies " +
                         "WHERE status = 'AVAILABLE' GROUP BY book_id",
-                rs -> availableCounts.put(rs.getLong("book_id"), rs.getInt("available_copies")));
-        return repo.findAll().stream()
-                .map(book -> toDto(book, availableCounts.getOrDefault(book.getBookId(), 0)))
-                .collect(Collectors.toList());
+                rs -> {
+                    availableCounts.put(rs.getLong("book_id"), rs.getInt("available_copies"));
+                });
+        return books.map(book -> toDto(book, availableCounts.getOrDefault(book.getBookId(), 0)));
     }
 
     @Override
@@ -89,6 +99,7 @@ public class BookServiceImpl implements BookService {
         d.setPublishYear(b.getPublishYear());
         d.setTotalCopies(b.getTotalCopies());
         d.setAvailableCopies(availableCopies);
+        d.setAvailabilityKnown(true);
         return d;
     }
 

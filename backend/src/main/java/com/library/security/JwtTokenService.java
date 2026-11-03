@@ -33,6 +33,7 @@ public class JwtTokenService {
                 .setSubject(user.getEmail())
                 .claim("userId", user.getId())
                 .claim("memberId", user.getMemberId())
+                .claim("passwordVersion", user.getPasswordVersion())
                 .setIssuedAt(Date.from(issuedAt))
                 .setExpiration(Date.from(issuedAt.plusMillis(expirationMs)))
                 .signWith(signingKey)
@@ -42,8 +43,11 @@ public class JwtTokenService {
     public boolean isValidFor(String token, AppUser user) {
         try {
             Claims claims = parse(token);
+            Object tokenVersion = claims.get("passwordVersion");
+            long version = tokenVersion == null ? 0L : ((Number) tokenVersion).longValue();
             return claims.getSubject().equalsIgnoreCase(user.getUsername())
                     && claims.get("userId", Long.class).equals(user.getId())
+                    && version == user.getPasswordVersion()
                     && claims.getExpiration().after(new Date());
         } catch (RuntimeException exception) {
             return false;

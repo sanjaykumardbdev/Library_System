@@ -51,7 +51,14 @@ public class LoanController {
 
     private Long requireMember(AppUser user) {
         if (user.getMemberId() == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This account is not linked to a library member");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Borrowing requires an account linked to an active Student or Professional membership. Ask a library administrator to link or activate your membership.");
+        }
+        if (user.getAuthorities().stream().noneMatch(authority -> "ROLE_MEMBER".equals(authority.getAuthority()))) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Borrowing is available to Student and Professional member accounts, not administrator-only accounts.");
         }
         return user.getMemberId();
     }

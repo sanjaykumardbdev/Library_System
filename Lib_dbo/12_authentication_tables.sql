@@ -11,6 +11,7 @@ BEGIN
             password_hash VARCHAR2(100) NOT NULL,
             member_id NUMBER UNIQUE,
             account_status VARCHAR2(20) DEFAULT ''ACTIVE'' NOT NULL,
+            password_version NUMBER DEFAULT 0 NOT NULL,
             CONSTRAINT uq_app_users_email UNIQUE (email),
             CONSTRAINT fk_app_users_member FOREIGN KEY (member_id)
                 REFERENCES members(member_id),
@@ -19,6 +20,14 @@ BEGIN
 EXCEPTION
     WHEN OTHERS THEN
         IF SQLCODE != -955 THEN RAISE; END IF;
+END;
+/
+
+BEGIN
+    EXECUTE IMMEDIATE 'ALTER TABLE app_users ADD (password_version NUMBER DEFAULT 0 NOT NULL)';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -1430 THEN RAISE; END IF;
 END;
 /
 

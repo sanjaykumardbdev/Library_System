@@ -15,7 +15,8 @@ public class MemberServiceImpl implements MemberService {
     public MemberServiceImpl(MemberRepository repository) { this.repository = repository; }
 
     @Override
-    public List<MemberDTO> findMembers(Long memberId, String name, String memberType) {
-        return repository.findMembers(memberId, name, memberType);
+    public List<MemberDTO> findMembers(
+            Long memberId, String name, String memberType, String status, Boolean hasAppUser) {
+        return repository.findMembers(memberId, name, memberType, status, hasAppUser);
     }
 }

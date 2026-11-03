@@ -10,6 +10,7 @@ public class MemberDTO {
     private String phone;
     private Date joinDate;
     private String status;
+    private boolean hasAppUser;
 
     public Long getMemberId() { return memberId; }
     public void setMemberId(Long memberId) { this.memberId = memberId; }
@@ -25,4 +26,6 @@ public class MemberDTO {
     public void setJoinDate(Date joinDate) { this.joinDate = joinDate; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public boolean isHasAppUser() { return hasAppUser; }
+    public void setHasAppUser(boolean hasAppUser) { this.hasAppUser = hasAppUser; }
 }

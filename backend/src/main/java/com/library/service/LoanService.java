@@ -1,6 +1,7 @@
 package com.library.service;
 
 import com.library.dto.BorrowedBookResponse;
+import com.library.dto.TopBorrowedBookResponse;
 import com.library.repository.LoanRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,11 @@ public class LoanService {
     @Transactional(readOnly = true)
     public List<BorrowedBookResponse> findAllLoans() {
         return loanRepository.findAllLoans();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TopBorrowedBookResponse> findTopBorrowedBooks(int limit) {
+        return loanRepository.findTopBorrowedBooks(limit);
     }
 
     @Transactional

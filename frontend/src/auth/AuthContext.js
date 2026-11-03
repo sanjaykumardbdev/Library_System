@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import api, { refreshCsrfToken } from '../api/client';
+import api, { getErrorMessage, refreshCsrfToken } from '../api/client';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -14,8 +15,13 @@ export function AuthProvider({ children }) {
         await refreshCsrfToken();
         const response = await api.get('/api/auth/me');
         if (active) setUser(response.data);
-      } catch {
-        if (active) setUser(null);
+      } catch (error) {
+        if (active) {
+          setUser(null);
+          if (error.response?.status !== 401 && error.response?.status !== 403) {
+            setAuthError(getErrorMessage(error, 'Could not verify your saved sign-in.'));
+          }
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -25,6 +31,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(credentials) {
+    setAuthError('');
     await refreshCsrfToken();
     const response = await api.post('/api/auth/login', credentials);
     setUser(response.data);
@@ -33,9 +40,7 @@ export function AuthProvider({ children }) {
 
   async function register(profile) {
     await refreshCsrfToken();
-    const response = await api.post('/api/auth/register', profile);
-    setUser(response.data);
-    return response.data;
+    return api.post('/api/auth/register', profile);
   }
 
   async function logout() {
@@ -48,7 +53,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, authError, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

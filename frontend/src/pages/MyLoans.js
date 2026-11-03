@@ -37,12 +37,12 @@ export default function MyLoans() {
   return (
     <main>
       <h1>My loans</h1>
-      {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
+      {error && <p role="alert" className="notice notice-error">{error}</p>}
+      {message && <p role="status" className="notice notice-success">{message}</p>}
       {!error && loans.length === 0 && <p>No loan history found.</p>}
       {loans.length > 0 && (
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="data-table">
             <thead><tr><th>Book</th><th>Copy</th><th>Borrowed</th><th>Due</th><th>Returned</th><th>Status</th><th>Fine (units)</th><th>Paid</th><th>Balance due</th><th>Action</th></tr></thead>
             <tbody>{loans.map((loan) => (
               <tr key={loan.loanId}>

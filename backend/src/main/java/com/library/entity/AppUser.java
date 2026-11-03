@@ -34,6 +34,9 @@ public class AppUser implements UserDetails {
     @Column(name = "ACCOUNT_STATUS", nullable = false, length = 20)
     private String status = "ACTIVE";
 
+    @Column(name = "PASSWORD_VERSION", nullable = false)
+    private Long passwordVersion = 0L;
+
     @ElementCollection(targetClass = Role.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "APP_USER_ROLES", joinColumns = @JoinColumn(name = "USER_ID"))
     @Enumerated(EnumType.STRING)
@@ -87,6 +90,14 @@ public class AppUser implements UserDetails {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getPasswordVersion() {
+        return passwordVersion == null ? 0L : passwordVersion;
+    }
+
+    public void setPasswordVersion(Long passwordVersion) {
+        this.passwordVersion = passwordVersion;
     }
 
     public Set<Role> getRoles() {

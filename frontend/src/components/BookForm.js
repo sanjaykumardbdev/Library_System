@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api/client';
+import api, { getErrorMessage } from '../api/client';
 
-export default function BookForm({ initial, onSaved, onClose }) {
+export default function BookForm({ initial, onSaved, onClose, onError }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [isbn, setIsbn] = useState(initial?.isbn || '');
   const [totalCopies, setTotalCopies] = useState(initial?.totalCopies || 1);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setTitle(initial?.title || '');
@@ -12,7 +13,11 @@ export default function BookForm({ initial, onSaved, onClose }) {
     setTotalCopies(initial?.totalCopies || 1);
   }, [initial]);
 
-  function save() {
+  async function save() {
+    if (!title.trim()) {
+      setError('Book title is required.');
+      return;
+    }
     const payload = {
       bookId: initial?.bookId,
       title,
@@ -24,7 +29,14 @@ export default function BookForm({ initial, onSaved, onClose }) {
       ? api.put(`/api/books/${initial.bookId}`, payload)
       : api.post('/api/books', payload);
 
-    req.then(() => onSaved()).catch(() => alert('Save failed'));
+    try {
+      await req;
+      onSaved();
+    } catch (error) {
+      const message = getErrorMessage(error, 'Could not save this book.');
+      setError(message);
+      onError(message);
+    }
   }
 
   return (
@@ -38,26 +50,24 @@ export default function BookForm({ initial, onSaved, onClose }) {
         background: 'rgba(0,0,0,0.3)',
       }}
     >
-      <div style={{ width: 600, margin: '80px auto', background: '#fff', padding: 20 }}>
-        <h3>{initial ? 'Edit Book' : 'Add Book'}</h3>
+      <div className="book-form-dialog" role="dialog" aria-modal="true" aria-labelledby="book-form-title">
+        <h3 id="book-form-title">{initial ? 'Edit Book' : 'Add Book'}</h3>
+        {error && <p role="alert" className="notice notice-error">{error}</p>}
         <div>
-          <label>Title</label>
-          <br />
-          <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%' }} />
+          <label htmlFor="book-title">Title</label>
+          <input id="book-title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%' }} />
         </div>
         <div>
-          <label>ISBN</label>
-          <br />
-          <input value={isbn} onChange={(e) => setIsbn(e.target.value)} />
+          <label htmlFor="book-isbn">ISBN</label>
+          <input id="book-isbn" value={isbn} onChange={(e) => setIsbn(e.target.value)} />
         </div>
         <div>
-          <label>Total Copies</label>
-          <br />
-          <input type="number" value={totalCopies} onChange={(e) => setTotalCopies(Number(e.target.value))} />
+          <label htmlFor="book-copies">Total Copies</label>
+          <input id="book-copies" type="number" min="0" max="10000" value={totalCopies} onChange={(e) => setTotalCopies(Number(e.target.value))} />
         </div>
-        <div style={{ marginTop: 12 }}>
+        <div className="action-group">
           <button onClick={save}>Save</button>
-          <button onClick={onClose} style={{ marginLeft: 8 }}>
+          <button className="button-secondary" onClick={onClose}>
             Cancel
           </button>
         </div>

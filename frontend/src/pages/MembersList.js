@@ -1,72 +1,93 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api, { getErrorMessage } from '../api/client';
 
 export default function MembersList() {
   const [members, setMembers] = useState([]);
-  const [memberId, setMemberId] = useState('1005');
+  const [memberId, setMemberId] = useState('');
   const [name, setName] = useState('');
   const [memberType, setMemberType] = useState('');
+  const [view, setView] = useState('ALL');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const load = () => {
+  async function load(filters = { memberId, name, memberType, view }) {
     setLoading(true);
     const params = {};
-    if (memberId) params.memberId = Number(memberId);
-    if (name) params.name = name;
-    if (memberType) params.memberType = memberType;
-
-    axios
-      .get('/api/members', { params })
-      .then((r) => setMembers(r.data))
-      .catch(() => setMembers([]))
-      .finally(() => setLoading(false));
-  };
+    if (filters.memberId) params.memberId = Number(filters.memberId);
+    if (filters.name) params.name = filters.name;
+    if (filters.memberType) params.memberType = filters.memberType;
+    if (filters.view === 'ACTIVE') params.status = 'ACTIVE';
+    if (filters.view === 'APP_USERS') params.hasAppUser = true;
+    setError('');
+    try {
+      const response = await api.get('/api/members', { params });
+      setMembers(response.data);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Could not load library members.'));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     load();
   }, []);
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <h2>Members</h2>
-      <p style={{ marginTop: 0, marginBottom: 12 }}>Example: memberId = 1005, name = optional, member_type = optional</p>
+    <section>
+      <div className="page-heading"><div><p className="eyebrow">LIBRARY DIRECTORY</p><h1>Members</h1></div></div>
+      <p>Search members by ID, name, or member type.</p>
+      {error && <p role="alert" className="notice notice-error">{error}</p>}
 
-      <div style={{ marginBottom: 12 }}>
-        <input placeholder="Member ID" value={memberId} onChange={(e) => setMemberId(e.target.value)} style={{ marginRight: 8 }} />
-        <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} style={{ marginRight: 8 }} />
-        <input placeholder="Type (STUDENT/PROFESSIONAL)" value={memberType} onChange={(e) => setMemberType(e.target.value)} style={{ marginRight: 8 }} />
-        <button onClick={() => load()}>Execute SP</button>
-        <button onClick={() => { setMemberId('1005'); setName(''); setMemberType(''); load(); }} style={{ marginLeft: 8 }}>Reset</button>
+      <div className="action-group member-view-tabs" aria-label="Member list filters">
+        <button className={view === 'ACTIVE' ? '' : 'button-secondary'} onClick={() => {
+          setView('ACTIVE');
+          load({ memberId, name, memberType, view: 'ACTIVE' });
+        }}>Active members</button>
+        <button className={view === 'ALL' ? '' : 'button-secondary'} onClick={() => {
+          setView('ALL');
+          load({ memberId, name, memberType, view: 'ALL' });
+        }}>All members</button>
+        <button className={view === 'APP_USERS' ? '' : 'button-secondary'} onClick={() => {
+          setView('APP_USERS');
+          load({ memberId, name, memberType, view: 'APP_USERS' });
+        }}>Members with app accounts</button>
+      </div>
+
+      <div className="toolbar">
+        <input aria-label="Member ID" placeholder="Member ID" value={memberId} onChange={(e) => setMemberId(e.target.value)} />
+        <input aria-label="Member name" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+        <select aria-label="Member type" value={memberType} onChange={(e) => setMemberType(e.target.value)}>
+          <option value="">All member types</option><option value="STUDENT">Student</option><option value="PROFESSIONAL">Professional</option>
+        </select>
+        <button onClick={() => load()}>Search members</button>
+        <button className="button-secondary" onClick={() => {
+          setMemberId('');
+          setName('');
+          setMemberType('');
+          setView('ALL');
+          load({ memberId: '', name: '', memberType: '', view: 'ALL' });
+        }}>Reset</button>
       </div>
 
       {loading ? (
-        <div>Loading...</div>
+        <p role="status">Loading members...</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.memberId}>
-                <td>{m.memberId}</td>
-                <td>{m.fullName}</td>
-                <td>{m.memberType}</td>
-                <td>{m.email}</td>
-                <td>{m.phone}</td>
-                <td>{m.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        members.length === 0 ? <p>No members matched your search.</p> : (
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Email</th><th>Phone</th><th>Status</th><th>App user</th></tr></thead>
+              <tbody>{members.map((member) => (
+                <tr key={member.memberId}>
+                  <td>{member.memberId}</td><td>{member.fullName}</td><td>{member.memberType}</td>
+                  <td>{member.email}</td><td>{member.phone || '—'}</td><td>{member.status}</td>
+                  <td>{member.hasAppUser ? 'Yes' : 'No'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )
       )}
-    </div>
+    </section>
   );
 }

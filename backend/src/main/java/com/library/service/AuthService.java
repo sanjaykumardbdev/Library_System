@@ -5,6 +5,7 @@ import com.library.entity.AppUser;
 import com.library.entity.Role;
 import com.library.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class AuthService {
@@ -75,14 +77,35 @@ public class AuthService {
         }
     }
 
-    public AppUser login(String email, String password) {
+    public AppUser login(String email, String password, String accountType) {
+        String normalizedEmail = normalizeEmail(email);
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizeEmail(email), password));
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, password));
         } catch (AuthenticationException exception) {
             throw new BadCredentialsException("Invalid email or password");
         }
-        AppUser user = userRepository.findByEmail(normalizeEmail(email))
+        AppUser user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        String selectedType = accountType.toUpperCase(Locale.ROOT);
+        boolean validType;
+        if ("ADMIN".equals(selectedType)) {
+            validType = user.getRoles().contains(Role.ADMIN);
+        } else if (Set.of("STUDENT", "PROFESSIONAL").contains(selectedType) && user.getMemberId() != null) {
+            try {
+                String memberType = jdbcTemplate.queryForObject(
+                        "SELECT member_type FROM members WHERE member_id = ? AND status = 'ACTIVE'",
+                        String.class,
+                        user.getMemberId());
+                validType = selectedType.equalsIgnoreCase(memberType) && user.getRoles().contains(Role.MEMBER);
+            } catch (EmptyResultDataAccessException exception) {
+                validType = false;
+            }
+        } else {
+            validType = false;
+        }
+        if (!validType) {
+            throw new BadCredentialsException("The selected account type does not match this account");
+        }
         jdbcTemplate.update(
                 "INSERT INTO login_activity (user_id, logged_in_at) VALUES (?, SYSDATE)",
                 user.getId());

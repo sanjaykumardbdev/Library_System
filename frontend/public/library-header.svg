@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+  <title id="title">A welcoming library</title>
+  <desc id="desc">Illustration of bookshelves, a reading chair and warm afternoon light</desc>
+  <defs>
+    <linearGradient id="wall" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f8e9c9"/>
+      <stop offset="1" stop-color="#d7e5d8"/>
+    </linearGradient>
+    <linearGradient id="window" x1="0" x2="1">
+      <stop offset="0" stop-color="#fff5d9"/>
+      <stop offset="1" stop-color="#f2c879"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="480" fill="url(#wall)"/>
+  <circle cx="934" cy="128" r="95" fill="#eab96f" opacity=".32"/>
+  <rect x="828" y="52" width="238" height="232" rx="8" fill="#59796a"/>
+  <rect x="843" y="67" width="208" height="202" fill="url(#window)"/>
+  <path d="M947 67v202M843 168h208" stroke="#799184" stroke-width="9"/>
+  <path d="M0 369h1200v111H0z" fill="#98735a"/>
+  <path d="M0 369h1200v14H0z" fill="#b68e6d"/>
+  <g transform="translate(78 67)">
+    <rect width="544" height="290" rx="8" fill="#684e3b"/>
+    <rect x="15" y="15" width="514" height="254" fill="#f3e5c7"/>
+    <path d="M15 103h514M15 190h514" stroke="#8b6a4d" stroke-width="10"/>
+    <g>
+      <path d="M34 30h42v66H34z" fill="#bc6752"/><path d="M82 23h39v73H82z" fill="#607f70"/>
+      <path d="M127 35h46v61h-46z" fill="#d0a24f"/><path d="M180 20h40v76h-40z" fill="#536b86"/>
+      <path d="M228 31h52v65h-52z" fill="#a64e43"/><path d="M288 27h37v69h-37z" fill="#6c8765"/>
+      <path d="M332 37h43v59h-43z" fill="#d0a24f"/><path d="M382 22h45v74h-45z" fill="#516b80"/>
+      <path d="M434 32h39v64h-39z" fill="#bd7152"/><path d="M480 25h34v71h-34z" fill="#728b70"/>
+    </g>
+    <g>
+      <path d="M30 116h50v65H30z" fill="#697e62"/><path d="M86 111h42v70H86z" fill="#bd6752"/>
+      <path d="M134 121h37v60h-37z" fill="#c69a48"/><path d="M177 109h50v72h-50z" fill="#57748b"/>
+      <path d="M233 117h40v64h-40z" fill="#a95143"/><path d="M280 110h48v71h-48z" fill="#718b70"/>
+      <path d="M335 121h41v60h-41z" fill="#d0a24f"/><path d="M382 110h51v71h-51z" fill="#637d8e"/>
+      <path d="M439 117h37v64h-37z" fill="#bd7152"/><path d="M482 109h33v72h-33z" fill="#6f896d"/>
+    </g>
+    <g>
+      <path d="M31 204h39v55H31z" fill="#c69a48"/><path d="M76 197h50v62H76z" fill="#607f70"/>
+      <path d="M132 208h44v51h-44z" fill="#bd6752"/><path d="M182 194h41v65h-41z" fill="#566f87"/>
+      <path d="M229 203h51v56h-51z" fill="#a95143"/><path d="M286 196h40v63h-40z" fill="#748a69"/>
+      <path d="M332 206h49v53h-49z" fill="#c69a48"/><path d="M387 193h43v66h-43z" fill="#60778b"/>
+      <path d="M436 204h40v55h-40z" fill="#bd7152"/><path d="M482 196h33v63h-33z" fill="#718b70"/>
+    </g>
+  </g>
+  <path d="M684 372c3-76 25-122 92-122s92 47 94 122z" fill="#627f70"/>
+  <path d="M701 335h151v62H701z" rx="18" fill="#6f8e7c"/>
+  <path d="M719 395v46M832 395v46" stroke="#594735" stroke-width="12"/>
+  <path d="M741 250c-8-45 21-70 51-70s55 25 51 70" fill="#78917c"/>
+  <path d="M690 442h210" stroke="#75543c" stroke-width="10" stroke-linecap="round"/>
+  <path d="M990 370h138M1010 329h97M1033 289h65" stroke="#9c7658" stroke-width="10" stroke-linecap="round"/>
+  <path d="M976 370v67M1134 370v67" stroke="#6b503c" stroke-width="10"/>
+  <path d="M1070 328v42" stroke="#6b503c" stroke-width="8"/>
+  <circle cx="1080" cy="306" r="17" fill="#d0a24f"/>
+</svg>

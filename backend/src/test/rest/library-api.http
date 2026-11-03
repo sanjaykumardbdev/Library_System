@@ -27,7 +27,17 @@ X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "email": "member@example.org",
-  "password": "ReplaceWithAUniqueLongPassword"
+  "password": "ReplaceWithAUniqueLongPassword",
+  "accountType": "STUDENT"
+}
+
+### Request a password reset email
+POST {{baseUrl}}/api/auth/forgot-password
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "member@example.org"
 }
 
 ### Current account
@@ -64,6 +74,10 @@ Accept: application/json
 # ==============================================================
 ### Get books
 GET {{baseUrl}}/api/books
+Accept: application/json
+
+### Top borrowed books for the dashboard
+GET {{baseUrl}}/api/books/top-borrowed?limit=5
 Accept: application/json
 
 # ==============================================================

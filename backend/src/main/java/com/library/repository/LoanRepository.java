@@ -1,6 +1,7 @@
 package com.library.repository;
 
 import com.library.dto.BorrowedBookResponse;
+import com.library.dto.TopBorrowedBookResponse;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,20 +12,23 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Repository
 public class LoanRepository {
 
+    private static final BigDecimal DAILY_LATE_FEE = BigDecimal.valueOf(5);
+
     private static final String LOAN_SELECT = """
             SELECT lt.loan_id, lt.member_id, m.full_name AS member_name,
                    b.book_id, bc.copy_id, b.title AS book_title,
-                   lt.loan_date, lt.due_date, lt.return_date,
-                   CASE WHEN lt.status = 'ISSUED' AND lt.return_date IS NULL AND lt.due_date < SYSDATE
+                   lt.loan_date, lt.due_date, lt.return_date, lt.status AS current_status, SYSDATE AS db_now,
+                   CASE WHEN lt.status IN ('ISSUED', 'OVERDUE') AND lt.return_date IS NULL AND lt.due_date < SYSDATE
                         THEN 'OVERDUE' ELSE lt.status END AS loan_status
                    , NVL((SELECT SUM(lc.amount) FROM loan_charges lc WHERE lc.loan_id = lt.loan_id), 0)
-                     + CASE WHEN lt.status = 'ISSUED' AND lt.return_date IS NULL
-                            THEN GREATEST(TRUNC(SYSDATE - lt.due_date), 0) * 5 ELSE 0 END AS fine_amount
+                     AS charged_amount
                    , NVL((SELECT SUM(lcp.amount)
                           FROM loan_charge_payments lcp
                           JOIN loan_charges lc ON lc.charge_id = lcp.charge_id
@@ -50,7 +54,8 @@ public class LoanRepository {
 
     public List<BorrowedBookResponse> findActiveLoans() {
         return jdbcTemplate.query(
-                LOAN_SELECT + " WHERE lt.return_date IS NULL ORDER BY lt.due_date, lt.loan_id",
+                LOAN_SELECT + " WHERE lt.status IN ('ISSUED', 'OVERDUE') AND lt.return_date IS NULL " +
+                        "ORDER BY lt.due_date, lt.loan_id",
                 this::mapLoan);
     }
 
@@ -58,6 +63,25 @@ public class LoanRepository {
         return jdbcTemplate.query(
                 LOAN_SELECT + " ORDER BY lt.loan_date DESC, lt.loan_id DESC",
                 this::mapLoan);
+    }
+
+    public List<TopBorrowedBookResponse> findTopBorrowedBooks(int limit) {
+        return jdbcTemplate.query(
+                "SELECT book_id, title, borrow_count FROM (" +
+                        "SELECT b.book_id, b.title, COUNT(*) AS borrow_count " +
+                        "FROM loan_transactions lt " +
+                        "JOIN book_copies bc ON bc.copy_id = lt.copy_id " +
+                        "JOIN books b ON b.book_id = bc.book_id " +
+                        "GROUP BY b.book_id, b.title " +
+                        "ORDER BY COUNT(*) DESC, b.title) WHERE ROWNUM <= ?",
+                (rs, rowNum) -> {
+                    TopBorrowedBookResponse response = new TopBorrowedBookResponse();
+                    response.setBookId(rs.getLong("book_id"));
+                    response.setTitle(rs.getString("title"));
+                    response.setBorrowCount(rs.getLong("borrow_count"));
+                    return response;
+                },
+                Math.max(1, Math.min(limit, 10)));
     }
 
     public BorrowedBookResponse issueBook(Long memberId, Long bookId) {
@@ -104,7 +128,7 @@ public class LoanRepository {
         String memberCondition = memberId == null ? "" : " AND member_id = ?";
         List<Long> copyIds = jdbcTemplate.query(
                 "SELECT copy_id FROM loan_transactions " +
-                        "WHERE loan_id = ? AND return_date IS NULL AND status = 'ISSUED'" +
+                        "WHERE loan_id = ? AND return_date IS NULL AND status IN ('ISSUED', 'OVERDUE')" +
                         memberCondition + " FOR UPDATE",
                 (rs, rowNum) -> rs.getLong("copy_id"),
                 memberId == null ? new Object[]{loanId} : new Object[]{loanId, memberId});
@@ -114,7 +138,7 @@ public class LoanRepository {
 
         int returned = jdbcTemplate.update(
                 "UPDATE loan_transactions SET status = 'RETURNED', return_date = SYSDATE " +
-                        "WHERE loan_id = ? AND return_date IS NULL AND status = 'ISSUED'",
+                        "WHERE loan_id = ? AND return_date IS NULL AND status IN ('ISSUED', 'OVERDUE')",
                 loanId);
         int copyAvailable = jdbcTemplate.update(
                 "UPDATE book_copies SET status = 'AVAILABLE' WHERE copy_id = ? AND status = 'ISSUED'",
@@ -130,7 +154,7 @@ public class LoanRepository {
         validateMoney(lostBookAmount);
         List<Long> copyIds = jdbcTemplate.query(
                 "SELECT copy_id FROM loan_transactions " +
-                        "WHERE loan_id = ? AND return_date IS NULL AND status = 'ISSUED' FOR UPDATE",
+                        "WHERE loan_id = ? AND return_date IS NULL AND status IN ('ISSUED', 'OVERDUE') FOR UPDATE",
                 (rs, rowNum) -> rs.getLong("copy_id"),
                 loanId);
         if (copyIds.isEmpty()) {
@@ -138,7 +162,8 @@ public class LoanRepository {
         }
 
         int updatedLoan = jdbcTemplate.update(
-                "UPDATE loan_transactions SET status = 'LOST' WHERE loan_id = ? AND return_date IS NULL AND status = 'ISSUED'",
+                "UPDATE loan_transactions SET status = 'LOST' " +
+                        "WHERE loan_id = ? AND return_date IS NULL AND status IN ('ISSUED', 'OVERDUE')",
                 loanId);
         int updatedCopy = jdbcTemplate.update(
                 "UPDATE book_copies SET status = 'LOST' WHERE copy_id = ? AND status = 'ISSUED'",
@@ -204,12 +229,19 @@ public class LoanRepository {
 
     private void addLateFee(Long loanId) {
         BigDecimal amount = jdbcTemplate.queryForObject(
-                "SELECT GREATEST(TRUNC(SYSDATE - due_date), 0) * 5 FROM loan_transactions WHERE loan_id = ?",
-                BigDecimal.class,
+                "SELECT due_date, SYSDATE AS db_now FROM loan_transactions WHERE loan_id = ?",
+                (rs, rowNum) -> calculateLateFee(rs.getTimestamp("due_date"), rs.getTimestamp("db_now")),
                 loanId);
         if (amount != null && amount.signum() > 0) {
             addCharge(loanId, "LATE_FEE", amount);
         }
+    }
+
+    private BigDecimal calculateLateFee(java.sql.Timestamp dueDate, java.sql.Timestamp currentTime) {
+        LocalDateTime due = dueDate.toLocalDateTime();
+        LocalDateTime now = currentTime.toLocalDateTime();
+        long overdueDays = Math.max(ChronoUnit.DAYS.between(due, now), 0);
+        return BigDecimal.valueOf(overdueDays).multiply(DAILY_LATE_FEE);
     }
 
     private void addCharge(Long loanId, String chargeType, BigDecimal amount) {
@@ -248,9 +280,15 @@ public class LoanRepository {
         loan.setDueDate(toInstant(rs.getTimestamp("due_date")));
         loan.setReturnedAt(toInstant(rs.getTimestamp("return_date")));
         loan.setStatus(rs.getString("loan_status"));
-        loan.setFineAmount(rs.getBigDecimal("fine_amount"));
+        BigDecimal fineAmount = rs.getBigDecimal("charged_amount");
+        String currentStatus = rs.getString("current_status");
+        if (("ISSUED".equals(currentStatus) || "OVERDUE".equals(currentStatus))
+                && rs.getTimestamp("return_date") == null) {
+            fineAmount = fineAmount.add(calculateLateFee(rs.getTimestamp("due_date"), rs.getTimestamp("db_now")));
+        }
+        loan.setFineAmount(fineAmount);
         loan.setAmountPaid(rs.getBigDecimal("amount_paid"));
-        loan.setBalanceDue(rs.getBigDecimal("fine_amount").subtract(rs.getBigDecimal("amount_paid")));
+        loan.setBalanceDue(fineAmount.subtract(rs.getBigDecimal("amount_paid")));
         return loan;
     }
 
