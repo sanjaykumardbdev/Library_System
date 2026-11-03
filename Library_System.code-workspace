@@ -8,6 +8,28 @@
 		"java.compile.nullAnalysis.mode": "automatic",
 		"chat.tools.terminal.autoApprove": {
 			"mvn spring-boot:run": true
-		}
+		},
+		"java.configuration.updateBuildConfiguration": "interactive",
+		"sqltools.connections": [
+			{
+				"oracleOptions": {
+					"privilege": "Normal",
+					"thickMode": false,
+					"autoCommit": false,
+					"lowerCase": false,
+					"limitPrefetchRows": false
+				},
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 1521,
+				"driver": "Oracle",
+				"name": "Library Oracle",
+				"group": "Oracle_db",
+				"database": "ORCL",
+				"username": "library_etl",
+				"password": "library_etl"
+			}
+		],
+		"sqltools.useNodeRuntime": true
 	}
 }

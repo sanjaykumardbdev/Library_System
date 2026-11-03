@@ -22,8 +22,10 @@ public class MemberController {
     public ResponseEntity<List<MemberDTO>> list(
             @RequestParam(required = false) Long memberId,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String memberType
+            @RequestParam(required = false) String memberType,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean hasAppUser
     ) {
-        return ResponseEntity.ok(service.findMembers(memberId, name, memberType));
+        return ResponseEntity.ok(service.findMembers(memberId, name, memberType, status, hasAppUser));
     }
 }

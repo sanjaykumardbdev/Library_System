@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f6f2" />
+    <meta
+      name="description"
+      content="Mutual fund schemes from the tracker with their latest available NAV."
+    />
+    <title>Mutual fund NAV tracker</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211d;
+        --muted: #66736b;
+        --line: #e2e8e1;
+        --paper: #fff;
+        --canvas: #f5f6f2;
+        --green: #1d5b45;
+        --green-soft: #e6f1e9;
+        --amber: #805a15;
+        --amber-soft: #fbf2df;
+        --red: #a23c33;
+        --red-soft: #faeae7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 48px 0 64px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--green);
+        font-size: 0.75rem;
+        font-weight: 750;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.2rem, 5vw, 3.8rem);
+        font-weight: 500;
+        letter-spacing: -0.045em;
+        line-height: 1.05;
+      }
+
+      .intro {
+        max-width: 640px;
+        margin: 16px 0 30px;
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 26px;
+      }
+
+      .summary-card {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--paper);
+      }
+
+      .summary-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .summary-value {
+        display: block;
+        margin-top: 5px;
+        font-size: 1.35rem;
+        font-weight: 720;
+        letter-spacing: -0.025em;
+      }
+
+      .panel {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--paper);
+        box-shadow: 0 12px 35px rgb(23 33 29 / 4%);
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .filters {
+        display: flex;
+        flex: 1;
+        gap: 10px;
+      }
+
+      .filters input,
+      .filters select {
+        min-width: 0;
+        height: 42px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #fff;
+        color: var(--ink);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        clip-path: inset(50%);
+      }
+
+      .filters input {
+        width: min(310px, 100%);
+      }
+
+      .filters select {
+        min-width: 170px;
+      }
+
+      .refresh {
+        min-height: 42px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 9px;
+        background: var(--green);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 680;
+        white-space: nowrap;
+      }
+
+      .refresh:hover:not(:disabled) {
+        background: #174936;
+      }
+
+      .refresh:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+
+      .notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin: 16px 20px;
+        padding: 11px 13px;
+        border-radius: 10px;
+        background: var(--green-soft);
+        color: var(--green);
+        font-size: 0.88rem;
+      }
+
+      .notice.warning {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .notice.error {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 14px 20px;
+        border-bottom: 1px solid #edf0ec;
+        vertical-align: middle;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 720;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      td {
+        font-size: 0.91rem;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .house {
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .scheme {
+        min-width: 260px;
+        font-weight: 650;
+      }
+
+      .nav-value {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .as-of,
+      .row-status {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .row-status.failed {
+        color: var(--red);
+      }
+
+      .empty {
+        padding: 32px 20px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .footnote {
+        margin: 16px 4px 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      @media (max-width: 700px) {
+        .shell {
+          width: min(100% - 28px, 1120px);
+          padding-top: 30px;
+        }
+
+        .summary {
+          gap: 8px;
+        }
+
+        .summary-card {
+          padding: 14px;
+        }
+
+        .summary-value {
+          font-size: 1.1rem;
+        }
+
+        .toolbar {
+          align-items: stretch;
+          flex-direction: column;
+          padding: 14px;
+        }
+
+        .filters {
+          flex-direction: column;
+        }
+
+        .filters input,
+        .filters select {
+          width: 100%;
+        }
+
+        th,
+        td {
+          padding: 12px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <p class="eyebrow">Portfolio reference</p>
+      <h1>Mutual fund NAVs</h1>
+      <p class="intro">
+        A clean view of the recognized fund houses and schemes in the tracker.
+        Refresh to check Moneycontrol for the latest published NAV.
+      </p>
+
+      <section class="summary" aria-label="Portfolio list summary">
+        <div class="summary-card">
+          <span class="summary-label">Fund houses</span>
+          <span class="summary-value" id="house-count">—</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Schemes</span>
+          <span class="summary-value" id="scheme-count">—</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">NAV data</span>
+          <span class="summary-value" id="nav-count">—</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Mutual fund schemes">
+        <div class="toolbar">
+          <div class="filters">
+            <label>
+              <span class="sr-only">Search schemes</span>
+              <input id="search" type="search" placeholder="Search a fund or scheme" />
+            </label>
+            <label>
+              <span class="sr-only">Filter by fund house</span>
+              <select id="house-filter">
+                <option value="">All fund houses</option>
+              </select>
+            </label>
+          </div>
+          <button class="refresh" id="refresh" type="button">Refresh latest NAV</button>
+        </div>
+
+        <p class="notice" id="notice" role="status" aria-live="polite"></p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Fund house</th>
+                <th scope="col">Scheme</th>
+                <th scope="col">Latest NAV (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="fund-rows"></tbody>
+          </table>
+          <p class="empty" id="empty" hidden>No schemes match your filters.</p>
+        </div>
+      </section>
+
+      <p class="footnote">
+        Workbook NAV values are a snapshot dated 25 Oct 2026. NAV dates may differ from
+        today on weekends or market holidays. One row marked “Unclassified - verify”
+        in the workbook was omitted because it is not a recognized fund scheme.
+      </p>
+    </main>
+    <script src="./mutual-funds.js" defer></script>
+  </body>
+</html>

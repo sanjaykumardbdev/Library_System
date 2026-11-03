@@ -4,55 +4,91 @@ import com.library.dto.BookDTO;
 import com.library.entity.Book;
 import com.library.repository.BookRepository;
 import com.library.service.BookService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class BookServiceImpl implements BookService {
 
     private final BookRepository repo;
+    private final JdbcTemplate jdbcTemplate;
 
-    public BookServiceImpl(BookRepository repo) { this.repo = repo; }
+    public BookServiceImpl(BookRepository repo, JdbcTemplate jdbcTemplate) {
+        this.repo = repo;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
-    public List<BookDTO> findAll(int page, int size, String search) {
-        // Simple implementation: ignore pagination/search for now
-        return repo.findAll().stream().map(this::toDto).collect(Collectors.toList());
+    public Page<BookDTO> findAll(int page, int size, String search) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Page must be non-negative and page size must be between 1 and 100");
+        }
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("bookId").ascending());
+        String query = search == null ? "" : search.trim();
+        Page<Book> books = query.isEmpty()
+                ? repo.findAll(pageable)
+                : repo.findByTitleContainingIgnoreCaseOrIsbnContainingIgnoreCase(query, query, pageable);
+        Map<Long, Integer> availableCounts = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT book_id, COUNT(*) AS available_copies FROM book_copies " +
+                        "WHERE status = 'AVAILABLE' GROUP BY book_id",
+                rs -> {
+                    availableCounts.put(rs.getLong("book_id"), rs.getInt("available_copies"));
+                });
+        return books.map(book -> toDto(book, availableCounts.getOrDefault(book.getBookId(), 0)));
     }
 
     @Override
     public BookDTO findById(Long id) {
-        return repo.findById(id).map(this::toDto).orElse(null);
+        return repo.findById(id).map(book -> toDto(book, availableCopyCount(id))).orElse(null);
     }
 
     @Override
+    @Transactional
     public BookDTO create(BookDTO dto) {
+        int copyCount = validateCopyCount(dto.getTotalCopies() == null ? 1 : dto.getTotalCopies());
         Book b = toEntity(dto);
-        Book saved = repo.save(b);
-        return toDto(saved);
+        b.setBookId(jdbcTemplate.queryForObject("SELECT seq_books.NEXTVAL FROM dual", Long.class));
+        b.setTotalCopies(copyCount);
+        Book saved = repo.saveAndFlush(b);
+        addCopies(saved.getBookId(), copyCount);
+        return toDto(saved, availableCopyCount(saved.getBookId()));
     }
 
     @Override
+    @Transactional
     public BookDTO update(Long id, BookDTO dto) {
         return repo.findById(id).map(e -> {
+            int requestedCopyCount = validateCopyCount(
+                    dto.getTotalCopies() == null ? e.getTotalCopies() : dto.getTotalCopies());
+            reconcileCopies(id, requestedCopyCount);
             e.setTitle(dto.getTitle());
             e.setCategory(dto.getCategory());
             e.setAuthorId(dto.getAuthorId());
             e.setPublisherId(dto.getPublisherId());
             e.setIsbn(dto.getIsbn());
             e.setPublishYear(dto.getPublishYear());
-            e.setTotalCopies(dto.getTotalCopies());
-            return toDto(repo.save(e));
+            e.setTotalCopies(requestedCopyCount);
+            Book saved = repo.saveAndFlush(e);
+            return toDto(saved, availableCopyCount(id));
         }).orElse(null);
     }
 
     @Override
     public void delete(Long id) { repo.deleteById(id); }
 
-    private BookDTO toDto(Book b) {
+    private BookDTO toDto(Book b, int availableCopies) {
         BookDTO d = new BookDTO();
         d.setBookId(b.getBookId());
         d.setTitle(b.getTitle());
@@ -62,7 +98,17 @@ public class BookServiceImpl implements BookService {
         d.setIsbn(b.getIsbn());
         d.setPublishYear(b.getPublishYear());
         d.setTotalCopies(b.getTotalCopies());
+        d.setAvailableCopies(availableCopies);
+        d.setAvailabilityKnown(true);
         return d;
+    }
+
+    private int availableCopyCount(Long bookId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM book_copies WHERE book_id = ? AND status = 'AVAILABLE'",
+                Integer.class,
+                bookId);
+        return count == null ? 0 : count;
     }
 
     private Book toEntity(BookDTO d) {
@@ -76,5 +122,51 @@ public class BookServiceImpl implements BookService {
         b.setPublishYear(d.getPublishYear());
         b.setTotalCopies(d.getTotalCopies());
         return b;
+    }
+
+    private int validateCopyCount(Integer copyCount) {
+        if (copyCount < 0 || copyCount > 10000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total copies must be between 0 and 10000");
+        }
+        return copyCount;
+    }
+
+    private void addCopies(Long bookId, int count) {
+        for (int index = 0; index < count; index++) {
+            jdbcTemplate.update(
+                    "INSERT INTO book_copies (copy_id, book_id, branch_id, status) " +
+                            "VALUES (seq_book_copies.NEXTVAL, ?, NULL, 'AVAILABLE')",
+                    bookId);
+        }
+    }
+
+    private void reconcileCopies(Long bookId, int requestedCount) {
+        Integer currentCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM book_copies WHERE book_id = ?",
+                Integer.class,
+                bookId);
+        int difference = requestedCount - (currentCount == null ? 0 : currentCount);
+        if (difference > 0) {
+            addCopies(bookId, difference);
+        } else if (difference < 0) {
+            int toRemove = -difference;
+            List<Long> availableCopyIds = jdbcTemplate.query(
+                    "SELECT copy_id FROM book_copies WHERE book_id = ? AND status = 'AVAILABLE' ORDER BY copy_id",
+                    (rs, rowNum) -> rs.getLong("copy_id"),
+                    bookId);
+            if (availableCopyIds.size() < toRemove) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Cannot reduce copies while some copies are issued or unavailable");
+            }
+            for (int index = 0; index < toRemove; index++) {
+                int deleted = jdbcTemplate.update(
+                        "DELETE FROM book_copies WHERE copy_id = ? AND status = 'AVAILABLE'",
+                        availableCopyIds.get(index));
+                if (deleted != 1) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Inventory changed; retry the update");
+                }
+            }
+        }
     }
 }

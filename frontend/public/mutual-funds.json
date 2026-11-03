@@ -1,0 +1,32 @@
+{
+  "snapshotAsOf": "2026-10-25",
+  "source": "mfHouse_SK_RK_Tracker.xlsx",
+  "schemes": [
+    { "house": "Axis", "name": "Axis Large Cap Fund - Direct Growth", "nav": 65.93 },
+    { "house": "Axis", "name": "Axis Mid Cap Fund - Direct Growth", "nav": 131.67 },
+    { "house": "Axis", "name": "Axis Multicap Fund Direct Growth", "nav": 19.29 },
+    { "house": "Axis", "name": "Axis Small Cap Fund", "nav": 124.67 },
+    { "house": "Axis", "name": "Axis Small Cap Fund Direct Growth", "nav": 124.67 },
+    { "house": "Bandhan", "name": "Bandhan Small Cap Fund Direct Growth", "nav": 53.46 },
+    { "house": "HDFC", "name": "HDFC Mid Cap Fund Direct Growth", "nav": 213.42 },
+    { "house": "HDFC", "name": "HDFC Small Cap Fund Direct Growth", "nav": 148.39 },
+    { "house": "ICICI Prudential", "name": "Banking and Financial Services Fund Direct Growth", "nav": 140.43 },
+    { "house": "ICICI Prudential", "name": "Flexicap Fund Direct Plan Growth", "nav": 20.22 },
+    { "house": "ICICI Prudential", "name": "ICICI Prudential Infrastructure Direct Growth", "nav": 197.02 },
+    { "house": "ICICI Prudential", "name": "Liquid Fund Direct Plan Growth", "nav": null },
+    { "house": "ICICI Prudential", "name": "Technology Fund Direct Plan Growth", "nav": 203.85 },
+    { "house": "Kotak", "name": "Kotak Aggressive Hybrid Fund Direct Plan - Growth (Erstwhile Kotak Equity Hybrid)", "nav": 72.31 },
+    { "house": "Kotak", "name": "Kotak Midcap Fund- Direct Plan", "nav": 150.91 },
+    { "house": "Kotak", "name": "Kotak Nifty Next 50 Index Fund", "nav": 19.33 },
+    { "house": "Kotak", "name": "Kotak Small Cap Fund - Direct Plan - Growth (Kotak Mid-Cap)", "nav": 298.04 },
+    { "house": "Motilal Oswal", "name": "Motilal Oswal Midcap Fund Direct Growth", "nav": 108.6 },
+    { "house": "Motilal Oswal", "name": "Motilal Oswal Nifty Midcap 150 Index Fund", "nav": 37.39 },
+    { "house": "Motilal Oswal", "name": "Motilal Oswal Nifty Smallcap 250 Index Fund", "nav": 36.72 },
+    { "house": "Nippon", "name": "NIPPON INDIA GROWTH MID CAP FUND", "nav": 4509.62 },
+    { "house": "Nippon", "name": "Nippon India Large Cap Dir Gr Gr", "nav": 94.07 },
+    { "house": "Nippon", "name": "Nippon India Multi Cap Dir Gr Gr", "nav": 304.91 },
+    { "house": "Parag Parikh", "name": "Parag Parikh Flexi Cap Fund Direct Growth", "nav": 88.97 },
+    { "house": "Quant", "name": "Quant Flexi Cap Gr Dir", "nav": 109.95 },
+    { "house": "Quant", "name": "Quant Small Cap Fund Direct Plan", "nav": 295.26 }
+  ]
+}
