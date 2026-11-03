@@ -37,6 +37,9 @@ public class AppUser implements UserDetails {
     @Column(name = "PASSWORD_VERSION", nullable = false)
     private Long passwordVersion = 0L;
 
+    @Column(name = "MUST_CHANGE_PASSWORD", nullable = false)
+    private boolean mustChangePassword;
+
     @ElementCollection(targetClass = Role.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "APP_USER_ROLES", joinColumns = @JoinColumn(name = "USER_ID"))
     @Enumerated(EnumType.STRING)
@@ -98,6 +101,14 @@ public class AppUser implements UserDetails {
 
     public void setPasswordVersion(Long passwordVersion) {
         this.passwordVersion = passwordVersion;
+    }
+
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
     }
 
     public Set<Role> getRoles() {

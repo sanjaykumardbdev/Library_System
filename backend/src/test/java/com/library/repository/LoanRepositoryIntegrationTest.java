@@ -75,6 +75,27 @@ class LoanRepositoryIntegrationTest {
     }
 
     @Test
+    void memberCannotBorrowAnotherCopyOfBookAlreadyCheckedOut() {
+        jdbcTemplate.update("INSERT INTO book_copies VALUES (3002, 2001, 'AVAILABLE')");
+        BorrowedBookResponse issued = transactions.execute(status -> loanRepository.issueBook(1001L, 2001L));
+
+        ResponseStatusException duplicate = assertThrows(
+                ResponseStatusException.class,
+                () -> transactions.execute(status -> loanRepository.issueBook(1001L, 2001L)));
+
+        assertEquals(409, duplicate.getStatusCode().value());
+        assertTrue(duplicate.getReason().matches(
+                "You already borrowed this book on \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2} and it is still checked out\\. Return it before borrowing another copy\\."));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM loan_transactions", Integer.class));
+        assertEquals("AVAILABLE", jdbcTemplate.queryForObject(
+                "SELECT status FROM book_copies WHERE copy_id = 3002", String.class));
+
+        transactions.execute(status -> loanRepository.returnBook(issued.getLoanId()));
+        BorrowedBookResponse reissued = transactions.execute(status -> loanRepository.issueBook(1001L, 2001L));
+        assertEquals("ISSUED", reissued.getStatus());
+    }
+
+    @Test
     void lateReturnCreatesFineAndPaymentClosesTheBalance() {
         BorrowedBookResponse issued = transactions.execute(status -> loanRepository.issueBook(1001L, 2001L));
         jdbcTemplate.update(

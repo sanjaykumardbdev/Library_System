@@ -32,6 +32,14 @@ END;
 /
 
 BEGIN
+    EXECUTE IMMEDIATE 'ALTER TABLE app_users ADD (must_change_password NUMBER(1) DEFAULT 0 NOT NULL)';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -1430 THEN RAISE; END IF;
+END;
+/
+
+BEGIN
     EXECUTE IMMEDIATE '
         CREATE TABLE app_user_roles (
             user_id NUMBER NOT NULL,

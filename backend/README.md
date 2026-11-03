@@ -4,13 +4,13 @@ Spring Boot REST API for library accounts, books, members, and circulation.
 
 ## Setup
 
-Run the Oracle scripts in `Lib_dbo/00_run_all_library_system.sql`, which installs the authentication and circulation-finance tables. Existing deployments should run `12_authentication_tables.sql` and `13_circulation_finance_tables.sql` before starting the updated backend. Hibernate uses `ddl-auto: validate`; schema changes belong in SQL scripts.
+Run the Oracle scripts in `Lib_dbo/00_run_all_library_system.sql`, which installs the authentication and circulation-finance tables, reconciles duplicate active member/book loans, and provisions existing eligible members with app accounts. Existing deployments should run `12_authentication_tables.sql`, `13_circulation_finance_tables.sql`, and `14_member_onboarding_duplicate_cleanup.sql` before starting the updated backend. Hibernate uses `ddl-auto: validate`; schema changes belong in SQL scripts.
 
 Configure the database with `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`. The default JDBC URL targets local Oracle `ORCLPDB`.
 
 Set `JWT_SECRET_BASE64` to a Base64-encoded random secret with at least 32 bytes of decoded key material. For example, generate one with `openssl rand -base64 32`. `JWT_EXPIRATION_MS` defaults to 15 minutes. `JWT_COOKIE_SECURE` defaults to `true`; set it to `false` only for local HTTP development. Do not use a committed or predictable signing key.
 
-Password reset links are delivered by email and expire after 60 minutes. Configure `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, and optionally `FRONTEND_URL` before enabling password reset. Reset tokens are stored as SHA-256 hashes, single-use, and increment the password version to invalidate existing access tokens.
+Password reset links are delivered by email and expire after 60 minutes. Configure `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, and optionally `FRONTEND_URL` before enabling password reset. Reset tokens are stored as SHA-256 hashes, single-use, and increment the password version to invalidate existing access tokens. Accounts provisioned from existing member records require password setup through Forgot password before they can sign in; the SQL script does not use member IDs as passwords.
 
 Public registration creates a member and a MEMBER account. The Admin selection shown during registration is informational only; it cannot grant administrator access. An existing administrator can grant the ADMIN role from User access after the account is created, or admins can be provisioned using an operator-controlled workflow after generating a BCrypt password hash:
 
@@ -36,6 +36,7 @@ Authentication returns a Secure, HttpOnly, SameSite=Lax `LIBRARY_ACCESS_TOKEN` c
 - ADMIN accounts can filter `/api/members` with `status=ACTIVE` and/or `hasAppUser=true` to review active members and members with app accounts. Omit those filters to see all members.
 - Fine deposits are recorded in the `library_bnk_account` and `fine_deposits` ledger. The deposit action records the collected amount in the application database; it does not connect to a bank or initiate a transfer.
 - Member identity for `/api/me/loans` comes from the authenticated account, never a request parameter. Late fees use the existing rule of 5 units per overdue day.
+- A member cannot have two active loans of the same book, even when additional physical copies are available. Older duplicate active rows are retained as returned history by script 14; the newest remains active.
 - Creating a book provisions the requested number of AVAILABLE `BOOK_COPIES`; reducing inventory is rejected if the copies to remove are issued or otherwise unavailable.
 - `GET /api/books/top-borrowed` returns the most borrowed books for the shared dashboard panel. The circulation SQL script provisions missing copy rows for legacy books with catalog copies but no inventory records.
 - `GET /api/books` accepts `page`, `size`, and `search`; it returns a Spring page response with at most `size` books per page and copy availability counts. The default page size is five.

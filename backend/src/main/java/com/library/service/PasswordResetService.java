@@ -104,8 +104,8 @@ public class PasswordResetService {
         }
 
         int updated = jdbcTemplate.update(
-                "UPDATE app_users SET password_hash = ?, password_version = password_version + 1 " +
-                        "WHERE user_id = ? AND account_status = 'ACTIVE'",
+                "UPDATE app_users SET password_hash = ?, password_version = password_version + 1, " +
+                        "must_change_password = 0 WHERE user_id = ? AND account_status = 'ACTIVE'",
                 passwordEncoder.encode(newPassword),
                 userId);
         if (updated != 1) {

@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -96,5 +97,20 @@ class AuthServiceTest {
 
         assertThrows(BadCredentialsException.class,
                 () -> authService.login("professional@example.test", "password", "STUDENT"));
+    }
+
+    @Test
+    void loginRequiresPasswordSetupBeforeAuthenticatingProvisionedMembers() {
+        AppUser user = new AppUser();
+        user.setId(702L);
+        user.setEmail("new-member@example.test");
+        user.setMustChangePassword(true);
+        when(userRepository.findByEmail("new-member@example.test")).thenReturn(Optional.of(user));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authService.login("new-member@example.test", "temporary", "STUDENT"));
+
+        assertTrue(exception.getReason().contains("Use Forgot password"));
     }
 }

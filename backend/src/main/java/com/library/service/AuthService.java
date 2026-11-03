@@ -79,13 +79,21 @@ public class AuthService {
 
     public AppUser login(String email, String password, String accountType) {
         String normalizedEmail = normalizeEmail(email);
+        AppUser user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        if (!user.isEnabled()) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+        if (user.isMustChangePassword()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "This account needs password setup before sign-in. Use Forgot password to receive a secure setup link.");
+        }
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, password));
         } catch (AuthenticationException exception) {
             throw new BadCredentialsException("Invalid email or password");
         }
-        AppUser user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
         String selectedType = accountType.toUpperCase(Locale.ROOT);
         boolean validType;
         if ("ADMIN".equals(selectedType)) {

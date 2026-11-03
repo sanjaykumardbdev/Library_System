@@ -31,8 +31,9 @@ class PasswordResetServiceTest {
         jdbcTemplate.execute("CREATE TABLE password_reset_tokens (user_id BIGINT, token_hash VARCHAR(64), " +
                 "expires_at TIMESTAMP, used_at TIMESTAMP, created_at TIMESTAMP)");
         jdbcTemplate.execute("CREATE TABLE app_users (user_id BIGINT PRIMARY KEY, password_hash VARCHAR(100), " +
-                "password_version BIGINT DEFAULT 0, account_status VARCHAR(20))");
-        jdbcTemplate.update("INSERT INTO app_users VALUES (7, 'old-hash', 0, 'ACTIVE')");
+                "password_version BIGINT DEFAULT 0, account_status VARCHAR(20), " +
+                "must_change_password BOOLEAN DEFAULT FALSE)");
+        jdbcTemplate.update("INSERT INTO app_users VALUES (7, 'old-hash', 0, 'ACTIVE', TRUE)");
         passwordEncoder = mock(PasswordEncoder.class);
         ObjectProvider<?> provider = mock(ObjectProvider.class);
         @SuppressWarnings("unchecked")
@@ -60,6 +61,8 @@ class PasswordResetServiceTest {
                 "SELECT password_hash FROM app_users WHERE user_id = 7", String.class));
         assertEquals(1L, jdbcTemplate.queryForObject(
                 "SELECT password_version FROM app_users WHERE user_id = 7", Long.class));
+        assertEquals(false, jdbcTemplate.queryForObject(
+                "SELECT must_change_password FROM app_users WHERE user_id = 7", Boolean.class));
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM password_reset_tokens WHERE used_at IS NOT NULL", Integer.class));
         assertThrows(ResponseStatusException.class,

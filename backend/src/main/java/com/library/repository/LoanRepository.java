@@ -14,12 +14,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Repository
 public class LoanRepository {
 
     private static final BigDecimal DAILY_LATE_FEE = BigDecimal.valueOf(5);
+    private static final DateTimeFormatter BORROWED_AT_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private static final String LOAN_SELECT = """
             SELECT lt.loan_id, lt.member_id, m.full_name AS member_name,
@@ -85,12 +88,30 @@ public class LoanRepository {
     }
 
     public BorrowedBookResponse issueBook(Long memberId, Long bookId) {
-        Integer activeMember = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM members WHERE member_id = ? AND status = 'ACTIVE'",
-                Integer.class,
+        List<String> memberStatuses = jdbcTemplate.query(
+                "SELECT status FROM members WHERE member_id = ? FOR UPDATE",
+                (rs, rowNum) -> rs.getString("status"),
                 memberId);
-        if (activeMember == null || activeMember == 0) {
+        if (memberStatuses.isEmpty() || !"ACTIVE".equalsIgnoreCase(memberStatuses.get(0))) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Active member not found");
+        }
+
+        List<java.sql.Timestamp> activeBorrowDates = jdbcTemplate.query(
+                "SELECT lt.loan_date FROM loan_transactions lt " +
+                        "JOIN book_copies bc ON bc.copy_id = lt.copy_id " +
+                        "WHERE lt.member_id = ? AND bc.book_id = ? " +
+                        "AND lt.status IN ('ISSUED', 'OVERDUE') AND lt.return_date IS NULL " +
+                        "ORDER BY lt.loan_date DESC, lt.loan_id DESC",
+                (rs, rowNum) -> rs.getTimestamp("loan_date"),
+                memberId,
+                bookId);
+        if (!activeBorrowDates.isEmpty()) {
+            LocalDateTime borrowedAt = activeBorrowDates.get(0).toLocalDateTime();
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "You already borrowed this book on " +
+                            BORROWED_AT_FORMAT.format(borrowedAt) +
+                            " and it is still checked out. Return it before borrowing another copy.");
         }
 
         List<Long> availableCopyIds = jdbcTemplate.query(
